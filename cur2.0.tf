@@ -309,11 +309,6 @@ resource "aws_iam_policy" "cloudscore_policy" {
                 "support:DescribeTrustedAdvisorCheckSummaries",
                 "support:RefreshTrustedAdvisorCheck",
                 "support:DescribeTrustedAdvisorCheckResult"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
    ],
    "Resource": "*"
   }
