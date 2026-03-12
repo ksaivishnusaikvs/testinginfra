@@ -1,0 +1,231 @@
+rm -f cur.yaml && cat > cur.yaml << 'EOF'
+AWSTemplateFormatVersion: "2010-09-09"
+Description: DevOps Infra CUR Stack
+
+Parameters:
+  IamUserName:
+    Type: String
+    Default: devops-infra-cur-user
+  CurReportName:
+    Type: String
+    Default: devops-infra-cur-report
+
+Resources:
+
+  CurBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "devops-infra-cur-${AWS::AccountId}"
+
+  CurBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CurBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: billingreports.amazonaws.com
+            Action:
+              - s3:GetBucketAcl
+              - s3:GetBucketPolicy
+              - s3:GetBucketLocation
+            Resource: !GetAtt CurBucket.Arn
+          - Effect: Allow
+            Principal:
+              Service: billingreports.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub "${CurBucket.Arn}/*"
+
+  CurReportLegacy:
+    Type: AWS::CUR::ReportDefinition
+    DependsOn: CurBucketPolicy
+    Properties:
+      ReportName: !Sub "${CurReportName}-legacy"
+      TimeUnit: HOURLY
+      Format: textORcsv
+      Compression: GZIP
+      AdditionalSchemaElements: [RESOURCES]
+      S3Bucket: !Ref CurBucket
+      S3Region: us-east-1
+      S3Prefix: cur-legacy
+      ReportVersioning: OVERWRITE_REPORT
+      RefreshClosedReports: false
+
+  CurReportV2:
+    Type: AWS::CUR::ReportDefinition
+    DependsOn: CurBucketPolicy
+    Properties:
+      ReportName: !Sub "${CurReportName}-v2"
+      TimeUnit: HOURLY
+      Format: Parquet
+      Compression: Parquet
+      AdditionalSchemaElements: [RESOURCES]
+      S3Bucket: !Ref CurBucket
+      S3Region: us-east-1
+      S3Prefix: cur-v2
+      ReportVersioning: OVERWRITE_REPORT
+      RefreshClosedReports: true
+
+  AccountOrgPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: devops-infra-account-org
+      Description: DevOps Infra Account and Organization access policy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            NotAction:
+              - "iam:*"
+              - "organizations:*"
+              - "account:*"
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - account:GetAccountInformation
+              - account:GetPrimaryEmail
+              - account:ListRegions
+              - iam:CreateServiceLinkedRole
+              - iam:DeleteServiceLinkedRole
+              - iam:ListRoles
+              - organizations:DescribeOrganization
+            Resource: "*"
+
+  CloudscorePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: devops-infra-cloudscore
+      Description: DevOps Infra Cloud cost and monitoring operations policy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudscoreDocOperations
+            Effect: Allow
+            Resource: "*"
+            Action:
+              - s3:Get*
+              - iam:GetAccessKeyLastUsed
+              - cloudwatch:GetMetricStatistics
+              - ec2:Describe*
+              - s3:ListAllMyBuckets
+              - iam:ListUsers
+              - iam:GetLoginProfile
+              - cur:DescribeReportDefinitions
+              - account:Get*
+              - account:GetContactInformation
+              - account:List*
+              - billing:Get*
+              - billing:ListBillingViews
+              - billing:PutContractInformation
+              - billing:Update*
+              - ce:CreateCostCategoryDefinition
+              - ce:DeleteCostCategoryDefinition
+              - ce:DescribeCostCategoryDefinition
+              - ce:GetCostAndUsage
+              - ce:ListCostAllocationTags
+              - ce:ListCostCategoryDefinitions
+              - ce:ListTagsForResource
+              - ce:TagResource
+              - ce:UntagResource
+              - ce:UpdateCostAllocationTagsStatus
+              - ce:UpdateCostCategoryDefinition
+              - consolidatedbilling:Get*
+              - consolidatedbilling:GetAccountBillingRole
+              - consolidatedbilling:List*
+              - cur:DeleteReportDefinition
+              - cur:Get*
+              - cur:GetClassic*
+              - cur:GetUsage*
+              - cur:ModifyReportDefinition
+              - cur:PutClassic*
+              - cur:PutReportDefinition
+              - cur:Validate*
+              - freetier:Get*
+              - invoicing:Get*
+              - invoicing:List*
+              - payments:CreatePaymentInstrument
+              - payments:DeletePaymentInstrument
+              - payments:Get*
+              - payments:List*
+              - pricing:DescribeServices
+              - purchase-orders:AddPurchaseOrder
+              - purchase-orders:DeletePurchaseOrder
+              - purchase-orders:GetPurchaseOrder
+              - purchase-orders:ListPurchaseOrderInvoices
+              - purchase-orders:ListPurchaseOrders
+              - purchase-orders:UpdatePurchaseOrder
+              - purchase-orders:UpdatePurchaseOrderStatus
+              - s3:PutBucketAcl
+              - s3:PutAccountPublicAccessBlock
+              - s3:ListJobs
+              - s3:DescribeMultiRegionAccessPointOperation
+              - s3:ListMultipartUploadParts
+              - s3:PutObject
+              - s3:GetObject
+              - s3:DescribeJob
+              - s3:ListBucketVersions
+              - s3:ListBucket
+              - s3:PutObjectAcl
+              - s3:GetBucketPublicAccessBlock
+              - s3:GetMultiRegionAccessPointPolicyStatus
+              - s3:ListBucketMultipartUploads
+              - s3:PutBucketPublicAccessBlock
+              - s3:GetBucketCORS
+              - s3:GetBucketLocation
+              - s3:GetAccessPointPolicy
+              - s3:GetObjectVersion
+              - s3:PutBucketPolicy
+              - support:AddAttachmentsToSet
+              - sustainability:GetCarbonFootprintSummary
+              - tax:BatchPut*
+              - tax:Get*
+              - tax:List*
+              - tax:Put*
+              - tax:UpdateExemptions
+              - s3:GetBucketPolicyStatus
+              - s3:GetBucketTagging
+              - iam:ListAccessKeys
+              - sts:GetSessionToken
+              - sts:AssumeRole
+              - sts:GetFederationToken
+              - sts:SetSourceIdentity
+              - sts:DecodeAuthorizationMessage
+              - sts:GetAccessKeyInfo
+              - sts:GetCallerIdentity
+              - sts:GetServiceBearerToken
+              - ce:GetReservationPurchaseRecommendation
+              - ce:GetSavingsPlansPurchaseRecommendation
+              - ce:GetRightsizingRecommendation
+              - support:DescribeTrustedAdvisorChecks
+              - support:DescribeTrustedAdvisorCheckSummaries
+              - support:RefreshTrustedAdvisorCheck
+              - support:DescribeTrustedAdvisorCheckResult
+
+  CurIamUser:
+    Type: AWS::IAM::User
+    DependsOn:
+      - AccountOrgPolicy
+      - CloudscorePolicy
+    Properties:
+      UserName: !Ref IamUserName
+      ManagedPolicyArns:
+        - !Ref AccountOrgPolicy
+        - !Ref CloudscorePolicy
+
+  CurAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref CurIamUser
+
+Outputs:
+  IamUserName:
+    Value: !Ref CurIamUser
+  AccessKeyId:
+    Value: !Ref CurAccessKey
+  SecretAccessKey:
+    Value: !GetAtt CurAccessKey.SecretAccessKey
+EOF
+echo "cur.yaml created!" && grep "Default:" cur.yaml
+
