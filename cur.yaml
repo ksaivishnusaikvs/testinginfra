@@ -229,3 +229,65 @@ Outputs:
 EOF
 echo "cur.yaml created!" && grep "Default:" cur.yaml
 
+
+=====================================================================================OUTPUT========================================================================
+
+~ $ aws cloudformation deploy \
+>   --template-file cur.yaml \
+>   --stack-name cur-report-stack \
+>   --capabilities CAPABILITY_NAMED_IAM \
+>   --region us-east-1
+
+Waiting for changeset to be created..
+Waiting for stack create/update to complete
+Successfully created/updated stack - cur-report-stack
+~ $ aws cloudformation describe-stacks \
+>   --stack-name cur-report-stack \
+>   --region us-east-1 \
+>   --query "Stacks[0].Outputs" \
+>   --output table
+-----------------------------------------------------------------
+|                        DescribeStacks                         |
++------------------+--------------------------------------------+
+|     OutputKey    |                OutputValue                 |
++------------------+--------------------------------------------+
+|  AccessKeyId     |  AKIA2UASZN53RLGTCYOT                      |
+|  SecretAccessKey |  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  |
+|  IamUserName     |  devops-infra-cur-user                     |
++------------------+--------------------------------------------+
+~ $ ```
+> 
+> ---
+> 
+> ---
+> 
+> Step 2 will print:
+> ```
+-bash: ---: command not found
+-bash: Step: command not found
+~ $ cur.yaml created!
+-bash: cur.yaml: command not found
+~ $     Default: devops-infra-cur-user   ✅
+-bash: Default:: command not found
+~ $     Default: devops-infra-cur-report ✅
+-bash: Default:: command not found
+~ $ aws cloudformation describe-stack-resources \
+>   --stack-name cur-report-stack \
+>   --region us-east-1 \
+>   --query "StackResources[].{Resource:LogicalResourceId,Type:ResourceType,Status:ResourceStatus,PhysicalId:PhysicalResourceId}" \
+>   --output table
+------------------------------------------------------------------------------------------------------------------------------------
+|                                                      DescribeStackResources                                                      |
++------------------------------------------------------------+-------------------+------------------+------------------------------+
+|                         PhysicalId                         |     Resource      |     Status       |            Type              |
++------------------------------------------------------------+-------------------+------------------+------------------------------+
+|  arn:aws:iam::730183855991:policy/devops-infra-account-org |  AccountOrgPolicy |  CREATE_COMPLETE |  AWS::IAM::ManagedPolicy     |
+|  arn:aws:iam::730183855991:policy/devops-infra-cloudscore  |  CloudscorePolicy |  CREATE_COMPLETE |  AWS::IAM::ManagedPolicy     |
+|  AKIA2UASZN53RLGTCYOT                                      |  CurAccessKey     |  CREATE_COMPLETE |  AWS::IAM::AccessKey         |
+|  devops-infra-cur-730183855991                             |  CurBucket        |  CREATE_COMPLETE |  AWS::S3::Bucket             |
+|  devops-infra-cur-730183855991                             |  CurBucketPolicy  |  CREATE_COMPLETE |  AWS::S3::BucketPolicy       |
+|  devops-infra-cur-user                                     |  CurIamUser       |  CREATE_COMPLETE |  AWS::IAM::User              |
+|  devops-infra-cur-report-legacy                            |  CurReportLegacy  |  CREATE_COMPLETE |  AWS::CUR::ReportDefinition  |
+|  devops-infra-cur-report-v2                                |  CurReportV2      |  CREATE_COMPLETE |  AWS::CUR::ReportDefinition  |
++------------------------------------------------------------+-------------------+------------------+------------------------------+
+~ $ 
