@@ -1,4 +1,15 @@
-=========================================================================================================== Cloud Formation ===========================================================
+# AWS Cost and Usage Report Automation
+
+This project creates:
+
+- S3 bucket for CUR reports
+- AWS Cost and Usage Report
+- IAM user
+- Required IAM policies
+
+## Deployment Methods
+
+### 1 CloudFormation
 AWSTemplateFormatVersion: "2010-09-09"
 Description: CUR Report + IAM User + Policies
 
@@ -154,11 +165,15 @@ Resources:
 			
 			
 			aws cloudformation create-stack \
+
+			
 --stack-name cur-stack \
 --template-body file://cur-template.yaml \
---capabilities CAPABILITY_NAMED_IAM
+--capabilities CAPABILITY_NAMED_IAM  
+ 
+=======================================================================aws cli  =======================================================================
+setup-cur.sh  file name 
 
-====================================================================== Single AWS CLI Script============================================================================================
 #!/bin/bash
 
 # VARIABLES
@@ -175,6 +190,7 @@ aws s3api create-bucket \
 --region $REGION
 
 echo "Creating bucket policy..."
+
 cat > bucket-policy.json <<EOF
 {
  "Version": "2012-10-17",
@@ -203,6 +219,7 @@ aws s3api put-bucket-policy \
 --policy file://bucket-policy.json
 
 echo "Creating CUR report..."
+
 cat > cur-report.json <<EOF
 {
  "ReportName": "$CUR_REPORT_NAME",
@@ -222,10 +239,12 @@ aws cur put-report-definition \
 --report-definition file://cur-report.json
 
 echo "Creating IAM user..."
+
 aws iam create-user \
 --user-name $USER_NAME
 
 echo "Creating policy 1..."
+
 cat > account-org-policy.json <<EOF
 {
  "Version": "2012-10-17",
@@ -263,6 +282,7 @@ aws iam create-policy \
 --policy-document file://account-org-policy.json
 
 echo "Creating policy 2..."
+
 cat > cloudscore-policy.json <<EOF
 {
  "Version": "2012-10-17",
@@ -317,8 +337,16 @@ aws iam attach-user-policy \
 --policy-arn arn:aws:iam::$ACCOUNT_ID:policy/cloudscore
 
 echo "Setup complete!"
------------------------------------
-setup-cur.sh
+
+============================================================================================================================================================
+
+Run the Script
+
+Make the script executable:
+
 chmod +x setup-cur.sh
+
+Run the script:
+
 ./setup-cur.sh
 
